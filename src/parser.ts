@@ -18,7 +18,14 @@ export function extractViewState(html: string): string {
  */
 export function extractViewStateFromPartial(xml: string): string {
   const $ = cheerio.load(xml, { xmlMode: true });
-  const value = $('update#j_id1\\:javax\\.faces\\.ViewState\\:0').text();
+  let value = '';
+  $('update').each((_, el) => {
+    const id = $(el).attr('id') || '';
+    if (id.includes('javax.faces.ViewState')) {
+      value = $(el).text();
+      return false;
+    }
+  });
   if (!value) {
     throw new Error('No se encontró javax.faces.ViewState en la respuesta parcial.');
   }

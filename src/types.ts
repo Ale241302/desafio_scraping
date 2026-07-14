@@ -77,6 +77,17 @@ export interface DocumentRecord {
   pretensionDelito?: string;
   sumilla?: string;
   palabrasClave?: string;
+  /** Datos de la ficha detallada (popup "Ver ficha"). */
+  magistradoPonente?: string;
+  magistradosTribunal?: string;
+  sentidoFallo?: string;
+  jurisprudenciaNacional?: string;
+  distritoJudicial?: string;
+  normaDerechoInterno?: string;
+  /** Source del enlace "Ver ficha" para consultar detalles. */
+  fichaSource?: string;
+  /** Parámetros del enlace "Ver ficha". */
+  fichaParams?: Record<string, string>;
   /** Estado del procesamiento. */
   status: 'pending' | 'metadata_extracted' | 'uuid_extracted' | 'downloaded' | 'failed';
   /** Mensaje de error si falló. */

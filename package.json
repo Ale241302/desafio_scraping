@@ -12,7 +12,9 @@
     "metadata": "cross-env SCRAPER_METADATA_ONLY=true tsx src/index.ts",
     "retry": "cross-env SCRAPER_RETRY_FAILED=true tsx src/index.ts",
     "interactive": "cross-env SCRAPER_INTERACTIVE=true tsx src/index.ts",
-    "test": "echo \"No tests configured\" && exit 0"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "keywords": [
     "scraper",
@@ -26,10 +28,12 @@
   "devDependencies": {
     "@types/inquirer": "^9.0.10",
     "@types/node": "^22.0.0",
+    "@vitest/coverage-v8": "^4.1.10",
     "cross-env": "^7.0.3",
     "ts-node": "^10.9.2",
     "tsx": "^4.16.0",
-    "typescript": "^5.5.0"
+    "typescript": "^5.5.0",
+    "vitest": "^4.1.10"
   },
   "dependencies": {
     "@inquirer/prompts": "^8.5.2",

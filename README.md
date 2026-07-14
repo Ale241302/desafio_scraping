@@ -7,7 +7,7 @@ Scraper en **TypeScript** que extrae metadatos y descarga PDFs de sitios web bas
 | Sitio | Configuración | Notas |
 |-------|---------------|-------|
 | `oefa` | OEFA — Tribunal de Fiscalización Ambiental | ✅ Probado y funcionando desde cualquier ubicación. |
-| `pj` | Poder Judicial del Perú — Jurisprudencia | ✅ Probado con VPN a Perú. Búsqueda por texto + paginación + descarga de PDFs. |
+| `pj` | Poder Judicial del Perú — Jurisprudencia | ✅ Probado con VPN a Perú. Búsqueda por texto + paginación + ficha detallada + descarga de PDFs. |
 
 > El sitio principal (`pj`) requiere una conexión desde Perú (o VPN peruana) porque bloquea tráfico internacional.
 
@@ -317,7 +317,9 @@ Es una aplicación **JSF** con componentes **RichFaces 4.2.2.Final** (no PrimeFa
 - El redirect usa `http://`, por lo que el scraper debe capturar la `Location` y forzar `https://` para mantener la sesión.
 - Los resultados se renderizan en `formBuscador:panel`.
 - La paginación usa `rich:dataScroller` (`formBuscador:data1`) y se controla vía AJAX enviando `formBuscador:data1:page=N`.
+- Cada resultado tiene un enlace **Ver ficha** que abre un popup (`formBuscador:popupResolucion`) vía AJAX. El scraper replica esa petición incluyendo el `source` también como parámetro de formulario, lo que permite recuperar el HTML completo del popup.
 - Los PDFs se descargan directamente desde `/jurisprudenciaweb/ServletDescarga?uuid=<UUID>`.
+- Se valida que el archivo descargado comience con `%PDF` y contenga `%%EOF`.
 
 ### Formulario de búsqueda
 
@@ -327,6 +329,37 @@ Es una aplicación **JSF** con componentes **RichFaces 4.2.2.Final** (no PrimeFa
 | Botón general | `formBuscador:j_idt31` | Inicia la búsqueda desde `inicio.xhtml`. |
 | Panel de resultados | `formBuscador:panel` | Se actualiza en `resultado.xhtml`. |
 | Paginador | `formBuscador:data1` | DataScroller de RichFaces. |
+
+### Ficha detallada
+
+Cada fila incluye un enlace **Ver ficha**:
+
+```html
+<a href="#" title="Ver" onclick="RichFaces.ajax('formBuscador:repeat:0:j_idt503', event, {
+  'parameters': {
+    'uuid':'39596387-9c0e-4565-acbd-09bd1b98842c',
+    'recurso':'Apelación',
+    ...
+  }
+})">...</a>
+```
+
+El scraper:
+
+1. Extrae el `source` (`formBuscador:repeat:N:j_idt503`) y los parámetros del `onclick`.
+2. Envía una petición AJAX a `resultado.xhtml` con:
+   - `javax.faces.source`, `javax.faces.partial.execute` y `javax.faces.partial.render`.
+   - El mismo `source` como parámetro de formulario (clave para que RichFaces/Mojarra ejecute el listener correcto).
+   - `javax.faces.ViewState` actual.
+3. Extrae del XML parcial el popup y parsea:
+   - `Fallo/Sentido de la Resolución:` → `sentidoFallo`
+   - `Jueces Supremos:` / `Magistrados del Tribunal:` → `magistradosTribunal`
+   - `*** Ponente:` → `magistradoPonente`
+   - `Jurisprudencia Nacional/Acuerdo Plenario:` → `jurisprudenciaNacional`
+   - `Distrito Judicial de Procedencia:` → `distritoJudicial`
+   - `Norma de Derecho Interno:` → `normaDerechoInterno`
+
+Si el servidor devuelve el popup vacío, se reintenta una vez automáticamente.
 
 ### Descarga de PDFs
 
@@ -338,7 +371,7 @@ Cada resultado incluye un enlace directo:
 </a>
 ```
 
-El scraper extrae el `uuid` y descarga el PDF con un `GET` a ese servlet.
+El scraper extrae el `uuid` y descarga el PDF con un `GET` a ese servlet. Se validan los magic bytes `%PDF` y el marcador de fin `%%EOF`; si no es un PDF, se guarda un archivo `.bin` para diagnóstico y se reporta el error.
 
 ### Ejecución
 
@@ -360,13 +393,16 @@ npx cross-env SCRAPER_SITE=pj SCRAPER_TEXT="derecho ambiental" SCRAPER_MAX_DOWNL
 - ✅ Reintentos con backoff.
 - ✅ Menú interactivo con filtros.
 - ✅ Flujo RichFaces del Poder Judicial: POST + redirect + paginación AJAX.
-- ✅ Descarga de PDFs del PJ vía `ServletDescarga?uuid=...`.
+- ✅ Extracción de la ficha detallada del popup "Ver ficha".
+- ✅ Descarga de PDFs del PJ vía `ServletDescarga?uuid=...` con validación de magic bytes y `%%EOF`.
+- ✅ Tests unitarios con Vitest (19 tests).
 
 ## 📝 Notas
 
 - El scraper no descarga todos los PDFs en una sola ejecución por defecto; usa `SCRAPER_MAX_DOWNLOADS` para controlar el alcance.
 - Se incluyen delays aleatorios entre requests para no sobrecargar el servidor.
 - Los metadatos se guardan tanto en CSV como en JSON.
+- El sitio PJ requiere conexión desde Perú (VPN peruana). Sin ella, `init()` detecta el fallo de conexión y muestra un mensaje claro antes de continuar.
 
 ## 📄 Licencia
 
