@@ -9,7 +9,155 @@ Scraper en **TypeScript** que extrae metadatos y descarga PDFs de sitios web bas
 | `oefa` | OEFA — Tribunal de Fiscalización Ambiental | ✅ Probado y funcionando desde cualquier ubicación. |
 | `pj` | Poder Judicial del Perú — Jurisprudencia | ✅ Probado con VPN a Perú. Búsqueda por texto + paginación + ficha detallada + descarga de PDFs. |
 
-> El sitio principal (`pj`) requiere una conexión desde Perú (o VPN peruana) porque bloquea tráfico internacional.
+> **Nota:** el sitio `pj` requiere una conexión desde Perú (o VPN peruana) porque bloquea tráfico internacional.
+
+---
+
+## 📦 Requisitos
+
+- Node.js 18+
+- npm
+
+## 🚀 Instalación
+
+```bash
+npm install
+```
+
+---
+
+## ▶️ Uso
+
+### Variables de entorno
+
+| Variable | Valor por defecto | Descripción |
+|----------|-------------------|-------------|
+| `SCRAPER_SITE` | `oefa` | Sitio a scrapear (`oefa` o `pj`). |
+| `SCRAPER_METADATA_ONLY` | `false` | Si es `true`, solo descarga metadatos. |
+| `SCRAPER_MAX_DOWNLOADS` | `0` | Máximo de PDFs a descargar (`0` = ilimitado). |
+| `SCRAPER_MAX_PAGES` | `0` | Máximo de páginas de resultados a recorrer (`0` = todas). Solo aplica a `pj`. |
+| `SCRAPER_TEXT` | `""` | **Texto de búsqueda para el sitio `pj` (obligatorio).** |
+| `SCRAPER_RETRY_FAILED` | `false` | Si es `true`, reintenta documentos fallidos. |
+| `SCRAPER_INTERACTIVE` | `false` | Si es `true`, muestra el menú interactivo en consola. |
+
+> **Importante:** el sitio PJ requiere un texto de búsqueda. Si se ejecuta con texto vacío, el sitio responde *"Debe ingresar filtros de información"* y no devuelve resultados.
+
+### Scripts disponibles
+
+```bash
+# Menú interactivo
+npm run interactive
+
+# OEFA
+npm run metadata          # solo metadatos
+npm run start:oefa        # metadatos + PDFs
+
+# PJ
+npm run metadata:pj       # solo metadatos + ficha
+npm run start:pj          # metadatos + PDFs (requiere SCRAPER_TEXT)
+
+# Reintentar fallidos
+npm run retry
+```
+
+### Uso con el sitio PJ
+
+```bash
+# Solo metadatos + ficha detallada
+npx cross-env SCRAPER_SITE=pj SCRAPER_TEXT="derecho ambiental" SCRAPER_METADATA_ONLY=true npx tsx src/index.ts
+
+# Descargar todos los PDFs
+npx cross-env SCRAPER_SITE=pj SCRAPER_TEXT="derecho ambiental" npx tsx src/index.ts
+
+# Limitar cantidad de PDFs
+npx cross-env SCRAPER_SITE=pj SCRAPER_TEXT="derecho ambiental" SCRAPER_MAX_DOWNLOADS=5 npx tsx src/index.ts
+
+# Limitar páginas de resultados (solo metadatos)
+npx cross-env SCRAPER_SITE=pj SCRAPER_TEXT="derecho ambiental" SCRAPER_METADATA_ONLY=true SCRAPER_MAX_PAGES=3 npx tsx src/index.ts
+```
+
+### Uso con el sitio OEFA
+
+```bash
+# Solo metadatos
+npm run metadata
+
+# Descargar todos los PDFs
+npm run start:oefa
+
+# Descargar 5 PDFs de prueba
+npx cross-env SCRAPER_SITE=oefa SCRAPER_MAX_DOWNLOADS=5 npx tsx src/index.ts
+```
+
+### En Windows (CMD)
+
+```cmd
+set SCRAPER_SITE=pj
+set SCRAPER_TEXT=derecho ambiental
+set SCRAPER_METADATA_ONLY=true
+npx tsx src/index.ts
+```
+
+### En Windows (PowerShell)
+
+```powershell
+$env:SCRAPER_SITE="pj"
+$env:SCRAPER_TEXT="derecho ambiental"
+$env:SCRAPER_METADATA_ONLY="true"
+npx tsx src/index.ts
+```
+
+---
+
+## 🖥️ Menú interactivo
+
+El menú interactivo guía paso a paso:
+
+1. Elige el **sitio** (`oefa` o `pj`).
+2. Pregunta si quieres **solo metadatos** o también PDFs.
+3. Pide **filtros**: para OEFA (número de expediente, administrado, unidad fiscalizable, sector y número de resolución) o para PJ (texto libre obligatorio).
+4. Si eliges descargar PDFs, pregunta si deseas **limitar la cantidad**.
+5. Pregunta si quieres **reintentar documentos fallidos**.
+
+#### Ejemplo: descargar 10 PDFs del sector PESQUERIA en OEFA
+
+```bash
+npm run interactive
+# → OEFA
+# → No (no solo metadatos)
+# → Sí (aplicar filtros)
+# → Sector: PESQUERIA
+# → Sí (limitar PDFs)
+# → 10
+# → No (no reintentar fallidos)
+```
+
+#### Ejemplo: buscar texto en PJ y descargar 5 PDFs
+
+```bash
+npm run interactive
+# → Poder Judicial del Perú - Jurisprudencia
+# → No (no solo metadatos)
+# → Texto: derecho ambiental
+# → Sí (limitar PDFs)
+# → 5
+# → No (no reintentar fallidos)
+```
+
+---
+
+## 📁 Estructura de salida
+
+```
+.
+├── data/
+│   ├── metadata.csv      # Metadatos en CSV
+│   └── progress.json     # Progreso con estado de cada documento
+├── pdfs/                 # PDFs descargados
+│   └── <RESOLUCION>_<EXPEDIENTE>.pdf
+└── logs/
+    └── scraper_<site>_<timestamp>.log
+```
 
 ---
 
@@ -68,7 +216,7 @@ Columnas:
 6. **Nro. Resolución de Apelación**
 7. **Archivo** — icono de descarga del PDF.
 
-La tabla es **scrollable** y está paginada. El paginador tiene ID `listarDetalleInfraccionRAAForm:dt_paginator_bottom`.
+La tabla es scrollable y está paginada. El paginador tiene ID `listarDetalleInfraccionRAAForm:dt_paginator_bottom`.
 
 ### Paginación
 
@@ -113,193 +261,6 @@ Pasos para descargar:
 
 ---
 
-## 📦 Requisitos
-
-- Node.js 18+
-- npm
-
-## 🚀 Instalación
-
-```bash
-npm install
-```
-
-## ▶️ Uso
-
-### Variables de entorno
-
-| Variable | Valor por defecto | Descripción |
-|----------|-------------------|-------------|
-| `SCRAPER_SITE` | `oefa` | Sitio a scrapear (`oefa` o `pj`). |
-| `SCRAPER_METADATA_ONLY` | `false` | Si es `true`, solo descarga metadatos. |
-| `SCRAPER_MAX_DOWNLOADS` | `0` | Máximo de PDFs a descargar (`0` = ilimitado). |
-| `SCRAPER_MAX_PAGES` | `0` | Máximo de páginas de resultados a recorrer (`0` = todas). Solo aplica a `pj`. |
-| `SCRAPER_TEXT` | `""` | **Texto de búsqueda para el sitio `pj` (obligatorio).** |
-| `SCRAPER_RETRY_FAILED` | `false` | Si es `true`, reintenta documentos fallidos. |
-| `SCRAPER_INTERACTIVE` | `false` | Si es `true`, muestra el menú interactivo en consola. |
-
-> **Importante:** el sitio PJ requiere que se ingrese un texto de búsqueda. Si se ejecuta con texto vacío, el sitio responde *"Debe ingresar filtros de información"* y no devuelve resultados. El menú interactivo y la ejecución directa validan esto.
-
----
-
-### Uso con el sitio PJ
-
-#### Solo metadatos
-
-```bash
-npx cross-env SCRAPER_SITE=pj SCRAPER_TEXT="derecho ambiental" SCRAPER_METADATA_ONLY=true npx tsx src/index.ts
-```
-
-#### Descargar todos los PDFs encontrados
-
-```bash
-npx cross-env SCRAPER_SITE=pj SCRAPER_TEXT="derecho ambiental" npx tsx src/index.ts
-```
-
-#### Limitar la cantidad de PDFs (útil para pruebas)
-
-```bash
-npx cross-env SCRAPER_SITE=pj SCRAPER_TEXT="derecho ambiental" SCRAPER_MAX_DOWNLOADS=5 npx tsx src/index.ts
-```
-
-#### Limitar páginas de resultados (solo metadatos)
-
-```bash
-npx cross-env SCRAPER_SITE=pj SCRAPER_TEXT="derecho ambiental" SCRAPER_METADATA_ONLY=true SCRAPER_MAX_PAGES=3 npx tsx src/index.ts
-```
-
-#### En Windows (CMD)
-
-```cmd
-set SCRAPER_SITE=pj
-set SCRAPER_TEXT=derecho ambiental
-set SCRAPER_METADATA_ONLY=true
-npx tsx src/index.ts
-```
-
-#### En Windows (PowerShell)
-
-```powershell
-$env:SCRAPER_SITE="pj"
-$env:SCRAPER_TEXT="derecho ambiental"
-$env:SCRAPER_METADATA_ONLY="true"
-npx tsx src/index.ts
-```
-
----
-
-### Uso con el sitio OEFA
-
-```bash
-# Solo metadatos
-npm run metadata
-
-# Descargar todos los PDFs
-npm run start:oefa
-
-# Descargar 5 PDFs de prueba
-npx cross-env SCRAPER_SITE=oefa SCRAPER_MAX_DOWNLOADS=5 npx tsx src/index.ts
-```
-
----
-
-### Scripts disponibles
-
-```bash
-# Menú interactivo en consola
-npm run interactive
-
-# Solo metadatos (OEFA)
-npm run metadata
-
-# Solo metadatos (PJ)
-npm run metadata:pj
-
-# Descargar todos los PDFs
-npm start
-
-# Reintentar documentos fallidos
-npm run retry
-```
-
----
-
-### 🖥️ Menú interactivo
-
-El menú interactivo guía paso a paso:
-
-1. Elige el **sitio** (`oefa` o `pj`).
-2. Pregunta si quieres **solo metadatos** o también PDFs.
-3. Pide **filtros**: para OEFA (número de expediente, administrado, unidad fiscalizable, sector y número de resolución) o para PJ (texto libre obligatorio).
-4. Si eliges descargar PDFs, pregunta si deseas **limitar la cantidad**.
-5. Pregunta si quieres **reintentar documentos fallidos**.
-
-#### Ejemplo: descargar 10 PDFs del sector PESQUERIA en OEFA
-
-```bash
-npm run interactive
-# → OEFA
-# → No (no solo metadatos)
-# → Sí (aplicar filtros)
-# → Sector: PESQUERIA
-# → Sí (limitar PDFs)
-# → 10
-# → No (no reintentar fallidos)
-```
-
-#### Ejemplo: buscar texto en PJ y descargar 5 PDFs
-
-```bash
-npm run interactive
-# → Poder Judicial del Perú - Jurisprudencia
-# → No (no solo metadatos)
-# → Texto: derecho ambiental
-# → Sí (limitar PDFs)
-# → 5
-# → No (no reintentar fallidos)
-```
-
-## 📁 Estructura de salida
-
-```
-.
-├── data/
-│   ├── metadata.csv      # Metadatos en CSV
-│   └── progress.json     # Progreso con estado de cada documento
-├── pdfs/                 # PDFs descargados
-│   └── <RESOLUCION>_<EXPEDIENTE>.pdf
-└── logs/
-    └── scraper_<site>_<timestamp>.log
-```
-
-## ⚠️ Manejo de errores 429 (Too Many Requests)
-
-El scraper detecta respuestas con status `429`, `502`, `503` y `504`, además de errores de red (`ECONNRESET`, `ETIMEDOUT`, etc.). Aplica:
-
-- Hasta 5 reintentos por operación.
-- Backoff exponencial: `delay = baseDelay * 2^(intento-1)`.
-- Jitter aleatorio.
-- Registro de documentos fallidos en `data/progress.json`.
-
-## 🛠️ Estructura del proyecto
-
-```
-src/
-├── cli.ts            # Menú interactivo en consola
-├── config.ts         # Configuraciones por sitio
-├── excel.ts          # Parser del Excel exportado
-├── http-client.ts    # Cliente HTTP con cookie jar
-├── index.ts          # Punto de entrada
-├── jsf-requests.ts   # Construcción de requests JSF/PrimeFaces
-├── logger.ts         # Logging a consola y archivo
-├── parser.ts         # Parsing de HTML/XML parcial
-├── pj-scraper.ts     # Lógica específica del sitio PJ (RichFaces)
-├── retry.ts          # Retry con backoff exponencial
-├── scraper.ts        # Lógica principal del scraper (OEFA / PrimeFaces)
-├── storage.ts        # Persistencia JSON/CSV/PDF
-└── types.ts          # Tipos compartidos
-```
-
 ## 🔧 Cómo funciona el sitio PJ
 
 La URL de inicio es:
@@ -323,10 +284,10 @@ Es una aplicación **JSF** con componentes **RichFaces 4.2.2.Final** (no PrimeFa
 
 ### Formulario de búsqueda
 
-El formulario tiene ID `formBuscador` y permite filtrar por:
+El formulario tiene ID `formBuscador`. Actualmente el scraper usa solo el campo de texto libre; los demás filtros están disponibles en la interfaz web pero aún no están implementados.
 
-| Campo | ID del input | Tipo | Soportado por el scraper |
-|-------|--------------|------|--------------------------|
+| Campo | ID del input | Tipo | Soportado |
+|-------|--------------|------|-----------|
 | Texto libre | `formBuscador:txtBusqueda` | Texto | ✅ Sí (obligatorio) |
 | Nivel | `formBuscador:buCorte` | Select | ❌ No |
 | Distrito Judicial | `formBuscador:buDistrito` | Select | ❌ No |
@@ -340,11 +301,9 @@ El formulario tiene ID `formBuscador` y permite filtrar por:
 | Año de la Resolución | `formBuscador:buAnio` | Select | ❌ No |
 | Incluir auto calificatorios | `formBuscador:varAutos` | Checkbox | ❌ No |
 
-Actualmente el scraper usa únicamente el **texto libre** como filtro de búsqueda. Los demás filtros están disponibles en la interfaz web pero aún no están implementados en el scraper.
-
 ### Tabla de resultados
 
-Los resultados se renderizan dentro de `formBuscador:panel`. Cada fila es un panel `formBuscador:repeat:N:j_idt455` con la siguiente información:
+Los resultados se renderizan dentro de `formBuscador:panel`. Cada fila es un panel `formBuscador:repeat:N:j_idt455` con:
 
 1. **Recurso** — tipo de recurso (Casación, Apelación, etc.).
 2. **Número de resolución/expediente** — identificador principal.
@@ -360,7 +319,7 @@ Los resultados se renderizan dentro de `formBuscador:panel`. Cada fila es un pan
 
 ### Paginación
 
-El paginador tiene ID `formBuscador:data1` y muestra botones numerados, además de controles *next* y *last*. En RichFaces, la paginación AJAX envía:
+El paginador tiene ID `formBuscador:data1` y muestra botones numerados, además de controles *next* y *last*. La paginación AJAX envía:
 
 - `javax.faces.source=formBuscador:data1`
 - `javax.faces.partial.execute=formBuscador:data1`
@@ -368,18 +327,17 @@ El paginador tiene ID `formBuscador:data1` y muestra botones numerados, además 
 - `formBuscador:data1:page=N`
 - `javax.faces.ViewState`
 
-El scraper itera página por página usando `fetchPageAjax(page)` hasta que no hay más resultados o se alcanza `SCRAPER_MAX_PAGES`.
+El scraper itera página por página hasta que no hay más resultados o se alcanza `SCRAPER_MAX_PAGES`.
 
 ### Ficha detallada
 
-Cada fila incluye un enlace **Ver ficha** similar a este:
+Cada fila incluye un enlace **Ver ficha** similar a:
 
 ```html
 <a href="#" title="Ver" onclick="RichFaces.ajax('formBuscador:repeat:0:j_idt491', event, {
   'parameters': {
     'uuid':'7134325f-1e3d-43a7-90b4-aa2a4906a1ae',
     'recurso':'Casación',
-    'nroexp':'027075-2025',
     ...
   },
   'incId':'1'
@@ -413,53 +371,79 @@ Cada resultado incluye un enlace directo:
 </a>
 ```
 
-El scraper extrae el `uuid` y descarga el PDF con un `GET` a ese servlet. Se validan los magic bytes `%PDF` y el marcador de fin `%%EOF`; si no es un PDF, se guarda un archivo `.bin` para diagnóstico y se reporta el error.
+El scraper extrae el `uuid` y descarga el PDF con un `GET` a ese servlet. Se validan los magic bytes `%PDF` y el marcador de fin `%%EOF`; si no es un PDF, se guarda un archivo `.bin` para diagnóstico.
 
-### Ejecución
+---
 
-```bash
-# Solo metadatos + ficha detallada
-npx cross-env SCRAPER_SITE=pj SCRAPER_TEXT="derecho ambiental" SCRAPER_METADATA_ONLY=true npx tsx src/index.ts
+## ⚠️ Manejo de errores y retry
 
-# Metadatos + descargar todos los PDFs
-npx cross-env SCRAPER_SITE=pj SCRAPER_TEXT="derecho ambiental" npx tsx src/index.ts
+El scraper detecta respuestas con status `429`, `502`, `503` y `504`, además de errores de red (`ECONNRESET`, `ETIMEDOUT`, etc.). Aplica:
 
-# Limitar a 5 PDFs de prueba
-npx cross-env SCRAPER_SITE=pj SCRAPER_TEXT="derecho ambiental" SCRAPER_MAX_DOWNLOADS=5 npx tsx src/index.ts
+- Hasta 5 reintentos por operación.
+- Backoff exponencial: `delay = baseDelay * 2^(intento-1)`.
+- Jitter aleatorio.
+- Registro de documentos fallidos en `data/progress.json`.
 
-# Limitar a 3 páginas de resultados (solo metadatos)
-npx cross-env SCRAPER_SITE=pj SCRAPER_TEXT="derecho ambiental" SCRAPER_METADATA_ONLY=true SCRAPER_MAX_PAGES=3 npx tsx src/index.ts
+Para el sitio PJ, `init()` detecta fallos de conexión (timeout, reset, 403) y muestra un mensaje claro pidiendo activar la VPN peruana.
+
+---
+
+## 🛠️ Estructura del proyecto
+
+```
+src/
+├── cli.ts            # Menú interactivo en consola
+├── config.ts         # Configuraciones por sitio
+├── excel.ts          # Parser del Excel exportado
+├── http-client.ts    # Cliente HTTP con cookie jar
+├── index.ts          # Punto de entrada
+├── jsf-requests.ts   # Construcción de requests JSF/PrimeFaces
+├── logger.ts         # Logging a consola y archivo
+├── parser.ts         # Parsing de HTML/XML parcial
+├── pj-scraper.ts     # Lógica específica del sitio PJ (RichFaces)
+├── retry.ts          # Retry con backoff exponencial
+├── scraper.ts        # Lógica principal del scraper (OEFA / PrimeFaces)
+├── storage.ts        # Persistencia JSON/CSV/PDF
+└── types.ts          # Tipos compartidos
 ```
 
-## 🧪 Pruebas realizadas
+---
+
+## 🧪 Pruebas
+
+```bash
+npm test
+```
+
+Resultado actual:
+
+```text
+Test Files  4 passed (4)
+Tests       20 passed (20)
+```
+
+Pruebas realizadas manualmente:
 
 - ✅ Obtención de ViewState inicial.
-- ✅ Búsqueda AJAX con PrimeFaces (OEFA).
+- ✅ Búsqueda y paginación AJAX con PrimeFaces (OEFA).
 - ✅ Descarga de Excel con todos los metadatos (1753 registros en OEFA).
 - ✅ Búsqueda por número de resolución y extracción de UUID (OEFA).
-- ✅ Descarga de PDFs válidos.
-- ✅ Reintentos con backoff.
-- ✅ Menú interactivo con filtros.
-- ✅ Flujo RichFaces del Poder Judicial: POST + redirect + paginación AJAX.
+- ✅ Flujo RichFaces del PJ: POST + redirect + paginación AJAX.
 - ✅ Extracción de la ficha detallada del popup "Ver ficha".
 - ✅ Descarga de PDFs del PJ vía `ServletDescarga?uuid=...` con validación de magic bytes y `%%EOF`.
-- ✅ Tests unitarios con Vitest (19 tests).
 
-## 📝 Notas
+---
 
-- El scraper no descarga todos los PDFs en una sola ejecución por defecto; usa `SCRAPER_MAX_DOWNLOADS` para controlar el alcance.
-- Se incluyen delays aleatorios entre requests para no sobrecargar el servidor.
-- Los metadatos se guardan tanto en CSV como en JSON.
-- El sitio PJ requiere conexión desde Perú (VPN peruana). Sin ella, `init()` detecta el fallo de conexión y muestra un mensaje claro antes de continuar.
+## 💡 Buenas prácticas aplicadas
 
-## 💡 Buenas prácticas aplicadas en este proyecto
+- 🕐 **Delays entre requests**: pausas base + jitter aleatorio para no saturar el servidor.
+- 🔄 **Retry inteligente**: errores 429/5xx y fallos de red se reintentan con backoff exponencial.
+- 📝 **Persistencia estructurada**: metadatos en `data/metadata.csv` y `data/progress.json`.
+- 🧪 **Ejecuciones de prueba**: usa `SCRAPER_MAX_PAGES=1` o `SCRAPER_MAX_DOWNLOADS=5` antes de una descarga masiva.
+- 📊 **Logging**: cada ejecución genera un archivo en `logs/scraper_<site>_<timestamp>.log`.
+- 💾 **PDFs organizados**: archivos descargados en `pdfs/` con nombres basados en expediente/resolución.
 
-- 🕐 **Delays entre requests**: el scraper incluye pausas base + jitter aleatorio (`retry.politeDelay`) para no saturar el servidor.
-- 🔄 **Retry inteligente**: errores 429, 502, 503, 504 y fallos de red (`ECONNRESET`, `ETIMEDOUT`, etc.) se reintentan con backoff exponencial en `src/retry.ts`.
-- 📝 **Persistencia estructurada**: los metadatos se guardan en `data/metadata.csv` y `data/progress.json` tras cada paso importante.
-- 🧪 **Ejecuciones de prueba**: usa `SCRAPER_MAX_PAGES=1` o `SCRAPER_MAX_DOWNLOADS=5` para validar el flujo antes de una descarga masiva.
-- 📊 **Logging**: cada ejecución genera un archivo en `logs/scraper_<site>_<timestamp>.log` con nivel `INFO` por defecto.
-- 💾 **PDFs organizados**: los archivos descargados se almacenan en `pdfs/` con nombres basados en expediente/resolución.
+---
 
 ## 📄 Licencia
 
