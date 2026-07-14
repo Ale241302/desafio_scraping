@@ -3,10 +3,10 @@ import { SiteConfig } from './types';
 /**
  * Configuraciones soportadas.
  *
- * El sitio principal requiere VPN a Perú y no ha sido probado desde este entorno,
- * pero se incluye con los parámetros típicos de una aplicación JSF/PrimeFaces
- * del Poder Judicial del Perú. El sitio alternativo (OEFA) sí fue probado y
- * funciona como demostración del scraper.
+ * El sitio alternativo (OEFA) funciona como demostración del scraper con
+ * PrimeFaces. El sitio principal del Poder Judicial (PJ) utiliza RichFaces 4
+ * y requiere un flujo ligeramente diferente: la búsqueda se inicia desde
+ * inicio.xhtml y el servidor responde con un redirect 302 a resultado.xhtml.
  */
 
 export const oefaConfig: SiteConfig = {
@@ -50,36 +50,37 @@ export const oefaConfig: SiteConfig = {
 };
 
 /**
- * Configuración tentativa para el sitio principal del Poder Judicial.
- * Los ids reales deberían ajustarse tras inspeccionar el sitio con VPN.
+ * Configuración para el sitio principal del Poder Judicial del Perú.
+ * La búsqueda general inicia en inicio.xhtml; los resultados se renderizan
+ * en resultado.xhtml tras un redirect 302.
  */
 export const pjConfig: SiteConfig = {
   name: 'Poder Judicial del Perú - Jurisprudencia',
   baseUrl: 'https://jurisprudencia.pj.gob.pe',
-  path: '/jurisprudenciaweb/faces/page/resultado.xhtml',
-  referer: 'https://jurisprudencia.pj.gob.pe/jurisprudenciaweb/faces/page/resultado.xhtml',
+  path: '/jurisprudenciaweb/faces/page/inicio.xhtml',
+  resultPath: '/jurisprudenciaweb/faces/page/resultado.xhtml',
+  referer: 'https://jurisprudencia.pj.gob.pe/jurisprudenciaweb/faces/page/inicio.xhtml',
 
-  formId: 'formBusqueda',
-  searchButtonId: 'formBusqueda:btnBuscar',
-  dataTableId: 'formBusqueda:dtResultados',
-  resultsUpdateId: 'formBusqueda:pnlResultados',
-  excelExportButtonId: 'formBusqueda:dtResultados:btnExportarExcel',
+  formId: 'formBuscador',
+  searchButtonId: 'formBuscador:j_idt31',
+  dataTableId: 'formBuscador:panel',
+  resultsUpdateId: 'formBuscador:panel',
+  excelExportButtonId: 'formBuscador:j_idt413',
 
   filterFields: {
-    numeroExpediente: 'formBusqueda:txtNroExpediente',
-    numeroResolucion: 'formBusqueda:txtNroResolucion',
+    texto: 'formBuscador:txtBusqueda',
   },
-  uniqueSearchField: 'numeroResolucion',
+  uniqueSearchField: 'texto',
 
-  pdfLinkSelector: 'a[onclick*="param_uuid"]',
-  uuidRegex: /param_uuid':'([^']+)'/,
-  jsfParamsRegex: /'([^']+)'\s*:\s*'([^']*)'/g,
+  pdfLinkSelector: 'a[href*="ServletDescarga?uuid="]',
+  uuidRegex: /ServletDescarga\?uuid=([0-9a-f-]{36})/,
+  jsfParamsRegex: /[?&]([^=]+)=([^&]+)/g,
 
-  columns: ['Nro.', 'Expediente', 'Resolución', 'Órgano', 'Fecha', 'Sumilla'],
-  excelFilename: 'RESULTADOS.xls',
+  columns: ['Nro.', 'Recurso', 'Expediente', 'Tipo Resolución', 'Fecha', 'Órgano', 'Pretensión/Delito', 'Sumilla', 'Palabras clave'],
+  excelFilename: 'Resoluciones_Jurisprudencia.xls',
 
-  requestDelayMs: 1000,
-  randomDelayMs: 500,
+  requestDelayMs: 1200,
+  randomDelayMs: 600,
 };
 
 export function getSiteConfig(siteName: string): SiteConfig {

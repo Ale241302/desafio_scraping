@@ -8,6 +8,7 @@
     "start": "tsx src/index.ts",
     "start:oefa": "cross-env SCRAPER_SITE=oefa tsx src/index.ts",
     "start:pj": "cross-env SCRAPER_SITE=pj tsx src/index.ts",
+    "metadata:pj": "cross-env SCRAPER_SITE=pj SCRAPER_METADATA_ONLY=true tsx src/index.ts",
     "metadata": "cross-env SCRAPER_METADATA_ONLY=true tsx src/index.ts",
     "retry": "cross-env SCRAPER_RETRY_FAILED=true tsx src/index.ts",
     "interactive": "cross-env SCRAPER_INTERACTIVE=true tsx src/index.ts",

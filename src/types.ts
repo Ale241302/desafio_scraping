@@ -9,6 +9,8 @@ export interface SiteConfig {
   baseUrl: string;
   /** Path de la página a scrapear, p. ej. /repdig/consulta/consultaTfa.xhtml */
   path: string;
+  /** Path de la página de resultados (si difiere de path), p. ej. /jurisprudenciaweb/faces/page/resultado.xhtml */
+  resultPath?: string;
   /** Referer usado en los POST. */
   referer: string;
 
@@ -67,6 +69,14 @@ export interface DocumentRecord {
   uuid?: string;
   /** Nombre del archivo PDF descargado. */
   pdfFilename?: string;
+  /** Datos extra del sitio PJ. */
+  recurso?: string;
+  tipoResolucion?: string;
+  fechaResolucion?: string;
+  organoJurisdiccional?: string;
+  pretensionDelito?: string;
+  sumilla?: string;
+  palabrasClave?: string;
   /** Estado del procesamiento. */
   status: 'pending' | 'metadata_extracted' | 'uuid_extracted' | 'downloaded' | 'failed';
   /** Mensaje de error si falló. */

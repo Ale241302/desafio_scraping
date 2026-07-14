@@ -15,6 +15,15 @@ export interface CliOptions {
 export async function runInteractiveMenu(config: SiteConfig): Promise<CliOptions> {
   console.log('\n=== Configuración del scraper ===\n');
 
+  const site = await select({
+    message: 'Sitio a scrapear:',
+    choices: [
+      { value: 'oefa', name: 'OEFA - Tribunal de Fiscalización Ambiental' },
+      { value: 'pj', name: 'Poder Judicial del Perú - Jurisprudencia' },
+    ],
+    default: config.name.toLowerCase().includes('oefa') ? 'oefa' : 'pj',
+  });
+
   const metadataOnly = await confirm({
     message: '¿Solo extraer metadatos (sin descargar PDFs)?',
     default: false,
@@ -28,40 +37,48 @@ export async function runInteractiveMenu(config: SiteConfig): Promise<CliOptions
   });
 
   if (useFilters) {
-    const numeroExpediente = await input({
-      message: 'Número de expediente (dejar vacío para todos):',
-      default: '',
-    });
-    if (numeroExpediente.trim()) filters.numeroExpediente = numeroExpediente.trim();
-
-    const administrado = await input({
-      message: 'Administrado (dejar vacío para todos):',
-      default: '',
-    });
-    if (administrado.trim()) filters.administrado = administrado.trim();
-
-    const unidadFiscalizable = await input({
-      message: 'Unidad fiscalizable (dejar vacío para todas):',
-      default: '',
-    });
-    if (unidadFiscalizable.trim()) filters.unidadFiscalizable = unidadFiscalizable.trim();
-
-    if (config.sectorOptions && config.sectorOptions.length > 0) {
-      const sector = await select({
-        message: 'Sector:',
-        choices: config.sectorOptions.map((opt) => ({
-          value: opt.value,
-          name: opt.label,
-        })),
+    if (site === 'pj') {
+      const texto = await input({
+        message: 'Texto a buscar en el contenido de las resoluciones:',
+        default: '',
       });
-      if (sector) filters.sector = sector;
-    }
+      if (texto.trim()) filters.texto = texto.trim();
+    } else {
+      const numeroExpediente = await input({
+        message: 'Número de expediente (dejar vacío para todos):',
+        default: '',
+      });
+      if (numeroExpediente.trim()) filters.numeroExpediente = numeroExpediente.trim();
 
-    const numeroResolucion = await input({
-      message: 'Nro. Resolución de Apelación (dejar vacío para todos):',
-      default: '',
-    });
-    if (numeroResolucion.trim()) filters.numeroResolucion = numeroResolucion.trim();
+      const administrado = await input({
+        message: 'Administrado (dejar vacío para todos):',
+        default: '',
+      });
+      if (administrado.trim()) filters.administrado = administrado.trim();
+
+      const unidadFiscalizable = await input({
+        message: 'Unidad fiscalizable (dejar vacío para todas):',
+        default: '',
+      });
+      if (unidadFiscalizable.trim()) filters.unidadFiscalizable = unidadFiscalizable.trim();
+
+      if (config.sectorOptions && config.sectorOptions.length > 0) {
+        const sector = await select({
+          message: 'Sector:',
+          choices: config.sectorOptions.map((opt) => ({
+            value: opt.value,
+            name: opt.label,
+          })),
+        });
+        if (sector) filters.sector = sector;
+      }
+
+      const numeroResolucion = await input({
+        message: 'Nro. Resolución de Apelación (dejar vacío para todos):',
+        default: '',
+      });
+      if (numeroResolucion.trim()) filters.numeroResolucion = numeroResolucion.trim();
+    }
   }
 
   let maxDownloads = 0;
@@ -86,7 +103,7 @@ export async function runInteractiveMenu(config: SiteConfig): Promise<CliOptions
   });
 
   return {
-    site: 'oefa',
+    site,
     metadataOnly,
     maxDownloads,
     retryFailed,

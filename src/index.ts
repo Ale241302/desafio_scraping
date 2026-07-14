@@ -1,20 +1,33 @@
 import * as path from 'path';
 import { getSiteConfig } from './config';
 import { JsfPrimefacesScraper } from './scraper';
+import { PjScraper } from './pj-scraper';
 import { Logger, LogLevel } from './logger';
 import * as storage from './storage';
 import * as retry from './retry';
 import { runInteractiveMenu, CliOptions } from './cli';
-import { DocumentRecord } from './types';
+import { DocumentRecord, SiteConfig } from './types';
 
 function getOptionsFromEnv(siteName: string): CliOptions {
+  const filters: Record<string, string> = {};
+  if (process.env.SCRAPER_TEXT) filters.texto = process.env.SCRAPER_TEXT;
+  if (process.env.SCRAPER_NUMERO_EXPEDIENTE) filters.numeroExpediente = process.env.SCRAPER_NUMERO_EXPEDIENTE;
+  if (process.env.SCRAPER_ADMINISTRADO) filters.administrado = process.env.SCRAPER_ADMINISTRADO;
+  if (process.env.SCRAPER_UNIDAD_FISCALIZABLE) filters.unidadFiscalizable = process.env.SCRAPER_UNIDAD_FISCALIZABLE;
+  if (process.env.SCRAPER_SECTOR) filters.sector = process.env.SCRAPER_SECTOR;
+  if (process.env.SCRAPER_NUMERO_RESOLUCION) filters.numeroResolucion = process.env.SCRAPER_NUMERO_RESOLUCION;
+
   return {
     site: siteName,
     metadataOnly: process.env.SCRAPER_METADATA_ONLY === 'true',
     maxDownloads: parseInt(process.env.SCRAPER_MAX_DOWNLOADS || '0', 10) || 0,
     retryFailed: process.env.SCRAPER_RETRY_FAILED === 'true',
-    filters: {},
+    filters,
   };
+}
+
+function isPj(config: SiteConfig): boolean {
+  return config.baseUrl.includes('jurisprudencia.pj.gob.pe');
 }
 
 async function runScraper(options: CliOptions) {
@@ -25,20 +38,51 @@ async function runScraper(options: CliOptions) {
   const logger = new Logger(LogLevel.INFO, logFile);
 
   logger.info('============================================');
-  logger.info(`Scraper JSF/PrimeFaces - Sitio: ${config.name}`);
+  logger.info(`Scraper JSF - Sitio: ${config.name}`);
   logger.info(`URL: ${config.baseUrl}${config.path}`);
   logger.info(`Modo: ${options.metadataOnly ? 'solo metadatos' : 'metadatos + PDFs'}`);
   logger.info(`Filtros: ${Object.keys(options.filters).length ? JSON.stringify(options.filters) : 'ninguno'}`);
   logger.info(`Max downloads: ${options.maxDownloads || 'sin límite'}`);
   logger.info('============================================');
 
-  const scraper = new JsfPrimefacesScraper(config, logger, dataDir, pdfDir);
-
-  await retry.withRetry(() => scraper.init(), logger, { maxAttempts: 3 });
-
   let records: DocumentRecord[];
   const progressFile = path.join(dataDir, 'progress.json');
   const existing = storage.loadProgress(progressFile);
+
+  if (isPj(config)) {
+    // Flujo específico del Poder Judicial (RichFaces)
+    const scraper = new PjScraper(config, logger, dataDir, pdfDir);
+    await retry.withRetry(() => scraper.init(), logger, { maxAttempts: 3 });
+
+    if (existing && !options.retryFailed) {
+      records = existing;
+      logger.info(`Continuando desde progreso previo: ${records.length} registros.`);
+    } else {
+      const maxPages = parseInt(process.env.SCRAPER_MAX_PAGES || '0', 10) || 0;
+      records = await retry.withRetry(
+        () => scraper.fetchMetadata(options.filters.texto ?? '', maxPages),
+        logger,
+        { maxAttempts: 3 }
+      );
+      storage.saveJson(records, progressFile);
+      storage.saveCsv(records, path.join(dataDir, 'metadata.csv'));
+      logger.info('Metadatos guardados en data/metadata.csv y data/progress.json');
+    }
+
+    if (options.metadataOnly) {
+      logger.info('Modo solo metadatos. Finalizando.');
+      return;
+    }
+
+    await scraper.downloadAllPdfs(records, options.maxDownloads, options.retryFailed);
+    storage.saveJson(records, progressFile);
+    storage.saveCsv(records, path.join(dataDir, 'metadata.csv'));
+    return;
+  }
+
+  // Flujo OEFA (PrimeFaces)
+  const scraper = new JsfPrimefacesScraper(config, logger, dataDir, pdfDir);
+  await retry.withRetry(() => scraper.init(), logger, { maxAttempts: 3 });
 
   if (existing && !options.retryFailed) {
     records = existing;
