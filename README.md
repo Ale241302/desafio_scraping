@@ -134,47 +134,107 @@ npm install
 | `SCRAPER_METADATA_ONLY` | `false` | Si es `true`, solo descarga metadatos. |
 | `SCRAPER_MAX_DOWNLOADS` | `0` | Máximo de PDFs a descargar (`0` = ilimitado). |
 | `SCRAPER_MAX_PAGES` | `0` | Máximo de páginas de resultados a recorrer (`0` = todas). Solo aplica a `pj`. |
-| `SCRAPER_TEXT` | `""` | Texto de búsqueda para el sitio `pj`. |
+| `SCRAPER_TEXT` | `""` | **Texto de búsqueda para el sitio `pj` (obligatorio).** |
 | `SCRAPER_RETRY_FAILED` | `false` | Si es `true`, reintenta documentos fallidos. |
 | `SCRAPER_INTERACTIVE` | `false` | Si es `true`, muestra el menú interactivo en consola. |
+
+> **Importante:** el sitio PJ requiere que se ingrese un texto de búsqueda. Si se ejecuta con texto vacío, el sitio responde *"Debe ingresar filtros de información"* y no devuelve resultados. El menú interactivo y la ejecución directa validan esto.
+
+---
+
+### Uso con el sitio PJ
+
+#### Solo metadatos
+
+```bash
+npx cross-env SCRAPER_SITE=pj SCRAPER_TEXT="derecho ambiental" SCRAPER_METADATA_ONLY=true npx tsx src/index.ts
+```
+
+#### Descargar todos los PDFs encontrados
+
+```bash
+npx cross-env SCRAPER_SITE=pj SCRAPER_TEXT="derecho ambiental" npx tsx src/index.ts
+```
+
+#### Limitar la cantidad de PDFs (útil para pruebas)
+
+```bash
+npx cross-env SCRAPER_SITE=pj SCRAPER_TEXT="derecho ambiental" SCRAPER_MAX_DOWNLOADS=5 npx tsx src/index.ts
+```
+
+#### Limitar páginas de resultados (solo metadatos)
+
+```bash
+npx cross-env SCRAPER_SITE=pj SCRAPER_TEXT="derecho ambiental" SCRAPER_METADATA_ONLY=true SCRAPER_MAX_PAGES=3 npx tsx src/index.ts
+```
+
+#### En Windows (CMD)
+
+```cmd
+set SCRAPER_SITE=pj
+set SCRAPER_TEXT=derecho ambiental
+set SCRAPER_METADATA_ONLY=true
+npx tsx src/index.ts
+```
+
+#### En Windows (PowerShell)
+
+```powershell
+$env:SCRAPER_SITE="pj"
+$env:SCRAPER_TEXT="derecho ambiental"
+$env:SCRAPER_METADATA_ONLY="true"
+npx tsx src/index.ts
+```
+
+---
+
+### Uso con el sitio OEFA
+
+```bash
+# Solo metadatos
+npm run metadata
+
+# Descargar todos los PDFs
+npm run start:oefa
+
+# Descargar 5 PDFs de prueba
+npx cross-env SCRAPER_SITE=oefa SCRAPER_MAX_DOWNLOADS=5 npx tsx src/index.ts
+```
+
+---
 
 ### Scripts disponibles
 
 ```bash
-# Menú interactivo en consola (permite elegir filtros, sector, etc.)
+# Menú interactivo en consola
 npm run interactive
 
-# Solo metadatos (Excel → CSV/JSON)
+# Solo metadatos (OEFA)
 npm run metadata
-# o solo para pj
+
+# Solo metadatos (PJ)
 npm run metadata:pj
 
-# Descargar todos los PDFs (puede tardar horas)
+# Descargar todos los PDFs
 npm start
-# o
-npm run start:oefa
-npm run start:pj
-
-# Descargar solo 5 PDFs de prueba (OEFA)
-npx cross-env SCRAPER_SITE=oefa SCRAPER_MAX_DOWNLOADS=5 npx tsx src/index.ts
-
-# Buscar "aguas" en PJ y descargar 3 PDFs
-npx cross-env SCRAPER_SITE=pj SCRAPER_TEXT=aguas SCRAPER_MAX_DOWNLOADS=3 npx tsx src/index.ts
 
 # Reintentar documentos fallidos
 npm run retry
 ```
 
+---
+
 ### 🖥️ Menú interactivo
 
 El menú interactivo guía paso a paso:
 
-1. Pregunta si quieres **solo metadatos** o también PDFs.
-2. Permite aplicar **filtros**: para OEFA (número de expediente, administrado, unidad fiscalizable, sector y número de resolución) o para PJ (texto libre).
-3. Si eliges descargar PDFs, pregunta si deseas **limitar la cantidad**.
-4. Pregunta si quieres **reintentar documentos fallidos**.
+1. Elige el **sitio** (`oefa` o `pj`).
+2. Pregunta si quieres **solo metadatos** o también PDFs.
+3. Pide **filtros**: para OEFA (número de expediente, administrado, unidad fiscalizable, sector y número de resolución) o para PJ (texto libre obligatorio).
+4. Si eliges descargar PDFs, pregunta si deseas **limitar la cantidad**.
+5. Pregunta si quieres **reintentar documentos fallidos**.
 
-Ejemplo de uso para descargar solo 10 PDFs del sector **PESQUERIA**:
+#### Ejemplo: descargar 10 PDFs del sector PESQUERIA en OEFA
 
 ```bash
 npm run interactive
@@ -187,13 +247,12 @@ npm run interactive
 # → No (no reintentar fallidos)
 ```
 
-Ejemplo de uso para buscar texto en PJ:
+#### Ejemplo: buscar texto en PJ y descargar 5 PDFs
 
 ```bash
 npm run interactive
 # → Poder Judicial del Perú - Jurisprudencia
 # → No (no solo metadatos)
-# → Sí (aplicar filtros)
 # → Texto: derecho ambiental
 # → Sí (limitar PDFs)
 # → 5
