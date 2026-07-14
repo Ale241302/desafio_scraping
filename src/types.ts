@@ -25,6 +25,8 @@ export interface SiteConfig {
 
   /** Mapeo de campos de filtro del formulario. */
   filterFields: Record<string, string>;
+  /** Opciones del filtro de sector (si aplica). */
+  sectorOptions?: { value: string; label: string }[];
   /** Campo por el cual buscar un documento individual (debe ser único). */
   uniqueSearchField: string;
 

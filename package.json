@@ -10,6 +10,7 @@
     "start:pj": "cross-env SCRAPER_SITE=pj tsx src/index.ts",
     "metadata": "cross-env SCRAPER_METADATA_ONLY=true tsx src/index.ts",
     "retry": "cross-env SCRAPER_RETRY_FAILED=true tsx src/index.ts",
+    "interactive": "cross-env SCRAPER_INTERACTIVE=true tsx src/index.ts",
     "test": "echo \"No tests configured\" && exit 0"
   },
   "keywords": [
@@ -22,6 +23,7 @@
   "author": "Ale241302",
   "license": "MIT",
   "devDependencies": {
+    "@types/inquirer": "^9.0.10",
     "@types/node": "^22.0.0",
     "cross-env": "^7.0.3",
     "ts-node": "^10.9.2",
@@ -29,6 +31,7 @@
     "typescript": "^5.5.0"
   },
   "dependencies": {
+    "@inquirer/prompts": "^8.5.2",
     "axios": "^1.7.2",
     "axios-cookiejar-support": "^5.0.5",
     "cheerio": "^1.0.0-rc.12",

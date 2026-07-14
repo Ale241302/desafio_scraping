@@ -28,6 +28,14 @@ export const oefaConfig: SiteConfig = {
     sector: 'listarDetalleInfraccionRAAForm:idsector',
     numeroResolucion: 'listarDetalleInfraccionRAAForm:j_idt34',
   },
+  sectorOptions: [
+    { value: '', label: 'Todos' },
+    { value: '2', label: 'ELECTRICIDAD' },
+    { value: '3', label: 'HIDROCARBUROS' },
+    { value: '9', label: 'INDUSTRIA' },
+    { value: '1', label: 'MINERIA' },
+    { value: '8', label: 'PESQUERIA' },
+  ],
   uniqueSearchField: 'numeroResolucion',
 
   pdfLinkSelector: 'a[onclick*="param_uuid"]',

@@ -58,7 +58,8 @@ export async function searchDocuments(
 export async function exportExcel(
   client: HttpClient,
   config: SiteConfig,
-  viewState: string
+  viewState: string,
+  filters: Record<string, string> = {}
 ): Promise<Buffer> {
   if (!config.excelExportButtonId) {
     throw new Error('Este sitio no tiene configurado un botón de exportación a Excel.');
@@ -67,7 +68,7 @@ export async function exportExcel(
   const params = new URLSearchParams();
   params.append(config.formId, config.formId);
 
-  const fields = getFormFields(config);
+  const fields = getFormFields(config, filters);
   for (const [key, value] of Object.entries(fields)) {
     params.append(key, value);
   }

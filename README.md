@@ -11,6 +11,108 @@ Scraper en **TypeScript** que extrae metadatos y descarga PDFs de sitios web bas
 
 > El sitio principal (`pj`) no fue accesible desde el entorno de desarrollo actual (sin VPN a Perú). El código está diseñado para ser fácilmente adaptable una vez que se pueda inspeccionar el sitio.
 
+---
+
+## 🧠 Cómo funciona el sitio OEFA
+
+La URL es:
+
+```
+https://publico.oefa.gob.pe/repdig/consulta/consultaTfa.xhtml
+```
+
+### Tecnología
+
+Es una aplicación **JSF (JavaServer Faces)** con componentes **PrimeFaces**. Esto significa:
+
+- La página se renderiza en el servidor.
+- Existe un campo oculto `javax.faces.ViewState` que debe enviarse en cada POST para mantener el estado de la sesión.
+- Las interacciones (búsqueda, paginación, descarga) se hacen mediante POST, muchas vía AJAX parcial (`Faces-Request: partial/ajax`).
+- Es imprescindible mantener la cookie de sesión (`JSESSIONID`) entre peticiones.
+
+### Formulario de filtros
+
+El formulario tiene ID `listarDetalleInfraccionRAAForm` y permite filtrar por:
+
+| Campo | ID del input | Tipo |
+|-------|--------------|------|
+| Número de expediente | `listarDetalleInfraccionRAAForm:txtNroexp` | Texto |
+| Administrado | `listarDetalleInfraccionRAAForm:j_idt21` | Texto |
+| Unidad fiscalizable | `listarDetalleInfraccionRAAForm:j_idt25` | Texto |
+| Sector | `listarDetalleInfraccionRAAForm:idsector` | Select |
+| Nro. Resolución de Apelación | `listarDetalleInfraccionRAAForm:j_idt34` | Texto |
+
+Opciones del select **Sector**:
+
+| Valor | Label |
+|-------|-------|
+| `2` | ELECTRICIDAD |
+| `3` | HIDROCARBUROS |
+| `9` | INDUSTRIA |
+| `1` | MINERIA |
+| `8` | PESQUERIA |
+
+El botón de búsqueda tiene ID `listarDetalleInfraccionRAAForm:btnBuscar` y dispara un AJAX que actualiza el panel `listarDetalleInfraccionRAAForm:pgLista`.
+
+### Tabla de resultados
+
+ID del DataTable: `listarDetalleInfraccionRAAForm:dt`
+
+Columnas:
+
+1. **Nro.** — índice de fila.
+2. **Número de expediente**
+3. **Administrado**
+4. **Unidad fiscalizable**
+5. **Sector**
+6. **Nro. Resolución de Apelación**
+7. **Archivo** — icono de descarga del PDF.
+
+La tabla es **scrollable** y está paginada. El paginador tiene ID `listarDetalleInfraccionRAAForm:dt_paginator_bottom`.
+
+### Paginación
+
+El paginador muestra botones numerados (`1`, `2`, `3`, etc.). En PrimeFaces, internamente la paginación AJAX enviaría parámetros como:
+
+- `dt_pagination=true`
+- `dt_page=1` (índice 0-based)
+- `dt_rows=10`
+
+Sin embargo, **en este sitio la paginación AJAX directa no respondió correctamente** en las pruebas (siempre devolvía la página 1). Por eso el scraper usa una estrategia alternativa:
+
+1. Descarga el **Excel completo** (botón exportar) para obtener todos los metadatos.
+2. Para cada documento, realiza una **búsqueda individual por número de resolución**, que devuelve 1 solo resultado.
+3. De ese resultado extrae el `param_uuid` del PDF.
+
+### Descarga de PDFs
+
+Cada fila tiene un enlace como este:
+
+```html
+<a href="#" onclick="mojarra.jsfcljs(
+  document.getElementById('listarDetalleInfraccionRAAForm'),
+  {
+    'listarDetalleInfraccionRAAForm:dt:0:j_idt63':'listarDetalleInfraccionRAAForm:dt:0:j_idt63',
+    'param_uuid':'153a6d2a-cbed-40ef-b8ef-cd2272b19867'
+  },
+  ''
+);return false">
+```
+
+Pasos para descargar:
+
+1. Extraer el `param_uuid` del `onclick`.
+2. Enviar un POST normal (no AJAX) con:
+   - Los campos del formulario.
+   - El `javax.faces.ViewState` actual.
+   - El `param_uuid`.
+   - El ID del componente que disparó la acción.
+3. El servidor responde con el archivo PDF, con headers como:
+   - `Content-Type: application/octet-stream`
+   - `Content-Disposition: attachment;filename="RTFA N° 264-2012.pdf"`
+
+---
+
 ## 📦 Requisitos
 
 - Node.js 18+
@@ -29,13 +131,17 @@ npm install
 | Variable | Valor por defecto | Descripción |
 |----------|-------------------|-------------|
 | `SCRAPER_SITE` | `oefa` | Sitio a scrapear (`oefa` o `pj`). |
-| `SCRAPER_METADATA_ONLY` | `false` | Si es `true`, solo descarga metadatos (Excel/CSV/JSON). |
-| `SCRAPER_MAX_DOWNLOADS` | `0` | Máximo de PDFs a descargar en la ejecución (`0` = ilimitado). |
-| `SCRAPER_RETRY_FAILED` | `false` | Si es `true`, reintenta los documentos marcados como fallidos. |
+| `SCRAPER_METADATA_ONLY` | `false` | Si es `true`, solo descarga metadatos. |
+| `SCRAPER_MAX_DOWNLOADS` | `0` | Máximo de PDFs a descargar (`0` = ilimitado). |
+| `SCRAPER_RETRY_FAILED` | `false` | Si es `true`, reintenta documentos fallidos. |
+| `SCRAPER_INTERACTIVE` | `false` | Si es `true`, muestra el menú interactivo en consola. |
 
 ### Scripts disponibles
 
 ```bash
+# Menú interactivo en consola (permite elegir filtros, sector, etc.)
+npm run interactive
+
 # Solo metadatos (Excel → CSV/JSON)
 npm run metadata
 
@@ -51,6 +157,27 @@ npx cross-env SCRAPER_SITE=oefa SCRAPER_MAX_DOWNLOADS=5 npx tsx src/index.ts
 npm run retry
 ```
 
+### 🖥️ Menú interactivo
+
+El menú interactivo guía paso a paso:
+
+1. Pregunta si quieres **solo metadatos** o también PDFs.
+2. Permite aplicar **filtros**: número de expediente, administrado, unidad fiscalizable, sector y número de resolución.
+3. Si eliges descargar PDFs, pregunta si deseas **limitar la cantidad**.
+4. Pregunta si quieres **reintentar documentos fallidos**.
+
+Ejemplo de uso para descargar solo 10 PDFs del sector **PESQUERIA**:
+
+```bash
+npm run interactive
+# → No (no solo metadatos)
+# → Sí (aplicar filtros)
+# → Sector: PESQUERIA
+# → Sí (limitar PDFs)
+# → 10
+# → No (no reintentar fallidos)
+```
+
 ## 📁 Estructura de salida
 
 ```
@@ -64,27 +191,20 @@ npm run retry
     └── scraper_<site>_<timestamp>.log
 ```
 
-## 🧠 Cómo funciona
-
-1. **Inicialización**: obtiene la página inicial de JSF y extrae el `javax.faces.ViewState`.
-2. **Metadatos**: realiza una búsqueda vacía para actualizar el estado y luego descarga el Excel exportado por PrimeFaces (`DataExporter`). El Excel contiene todos los registros.
-3. **UUIDs**: para cada documento, realiza una búsqueda por su número de resolución (identificador único) y extrae el `param_uuid` del enlace de descarga.
-4. **PDFs**: envía un POST con los parámetros JSF del enlace y guarda el archivo PDF.
-5. **Reintentos**: si ocurre un error de red o HTTP 429, aplica backoff exponencial con jitter.
-
 ## ⚠️ Manejo de errores 429 (Too Many Requests)
 
 El scraper detecta respuestas con status `429`, `502`, `503` y `504`, además de errores de red (`ECONNRESET`, `ETIMEDOUT`, etc.). Aplica:
 
 - Hasta 5 reintentos por operación.
 - Backoff exponencial: `delay = baseDelay * 2^(intento-1)`.
-- Jitter aleatorio para evitar thundering herd.
-- Registro de documentos fallidos en `data/progress.json` para reintentos posteriores.
+- Jitter aleatorio.
+- Registro de documentos fallidos en `data/progress.json`.
 
 ## 🛠️ Estructura del proyecto
 
 ```
 src/
+├── cli.ts            # Menú interactivo en consola
 ├── config.ts         # Configuraciones por sitio
 ├── excel.ts          # Parser del Excel exportado
 ├── http-client.ts    # Cliente HTTP con cookie jar
@@ -118,13 +238,14 @@ npx cross-env SCRAPER_SITE=pj SCRAPER_MAX_DOWNLOADS=5 npx tsx src/index.ts
 - ✅ Descarga de Excel con todos los metadatos (1753 registros en OEFA).
 - ✅ Búsqueda por número de resolución y extracción de UUID.
 - ✅ Descarga de PDFs válidos.
-- ✅ Reintentos con backoff (simulados mediante timeouts forzados).
+- ✅ Reintentos con backoff.
+- ✅ Menú interactivo con filtros.
 
 ## 📝 Notas
 
 - El scraper no descarga todos los PDFs en una sola ejecución por defecto; usa `SCRAPER_MAX_DOWNLOADS` para controlar el alcance.
 - Se incluyen delays aleatorios entre requests para no sobrecargar el servidor.
-- Los metadatos se guardan tanto en CSV como en JSON para facilitar su análisis.
+- Los metadatos se guardan tanto en CSV como en JSON.
 
 ## 📄 Licencia
 

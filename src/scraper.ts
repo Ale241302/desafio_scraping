@@ -44,17 +44,17 @@ export class JsfPrimefacesScraper {
    * Estrategia preferida: descargar el Excel exportado por PrimeFaces.
    * Fallback: parsear la primera página de resultados.
    */
-  async fetchMetadata(): Promise<DocumentRecord[]> {
+  async fetchMetadata(filters: Record<string, string> = {}): Promise<DocumentRecord[]> {
     // PrimeFaces actualiza el ViewState tras la búsqueda; necesitamos ese
     // ViewState actualizado para que la exportación a Excel funcione.
-    this.logger.info('Realizando búsqueda vacía para inicializar el estado...');
-    let partialXml = await jsf.searchDocuments(this.client, this.config, this.viewState);
+    this.logger.info('Realizando búsqueda para inicializar el estado...');
+    let partialXml = await jsf.searchDocuments(this.client, this.config, this.viewState, filters);
     this.viewState = parser.extractViewStateFromPartial(partialXml);
 
     if (this.config.excelExportButtonId) {
       try {
-        this.logger.info('Intentando descargar Excel con todos los metadatos...');
-        const buffer = await jsf.exportExcel(this.client, this.config, this.viewState);
+        this.logger.info('Intentando descargar Excel con los metadatos filtrados...');
+        const buffer = await jsf.exportExcel(this.client, this.config, this.viewState, filters);
         const records = excel.parseExcel(buffer, this.config);
         this.logger.info(`Metadatos obtenidos vía Excel: ${records.length} registros.`);
         return records;
