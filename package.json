@@ -1,0 +1,38 @@
+{
+  "name": "desafio_scraping",
+  "version": "1.0.0",
+  "description": "Scraper en TypeScript para sitios JSF/PrimeFaces sin automatización de navegador.",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "tsx src/index.ts",
+    "start:oefa": "cross-env SCRAPER_SITE=oefa tsx src/index.ts",
+    "start:pj": "cross-env SCRAPER_SITE=pj tsx src/index.ts",
+    "metadata": "cross-env SCRAPER_METADATA_ONLY=true tsx src/index.ts",
+    "retry": "cross-env SCRAPER_RETRY_FAILED=true tsx src/index.ts",
+    "test": "echo \"No tests configured\" && exit 0"
+  },
+  "keywords": [
+    "scraper",
+    "typescript",
+    "jsf",
+    "primefaces",
+    "pdf"
+  ],
+  "author": "Ale241302",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "cross-env": "^7.0.3",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.16.0",
+    "typescript": "^5.5.0"
+  },
+  "dependencies": {
+    "axios": "^1.7.2",
+    "axios-cookiejar-support": "^5.0.5",
+    "cheerio": "^1.0.0-rc.12",
+    "tough-cookie": "^5.1.0",
+    "xlsx": "^0.18.5"
+  }
+}
