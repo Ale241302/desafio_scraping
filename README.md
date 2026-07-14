@@ -404,14 +404,14 @@ npx cross-env SCRAPER_SITE=pj SCRAPER_TEXT="derecho ambiental" SCRAPER_MAX_DOWNL
 - Los metadatos se guardan tanto en CSV como en JSON.
 - El sitio PJ requiere conexión desde Perú (VPN peruana). Sin ella, `init()` detecta el fallo de conexión y muestra un mensaje claro antes de continuar.
 
-## 💡 Tips y recomendaciones
+## 💡 Buenas prácticas aplicadas en este proyecto
 
-- 🕐 Implementa delays entre requests para evitar sobrecargar el servidor.
-- 🔄 Usa estrategias de retry inteligentes para los errores 429.
-- 📝 Guarda los datos extraídos en un formato estructurado (JSON, CSV, etc.).
-- 🧪 Prueba tu scraper con un subconjunto de documentos antes de ejecutarlo completo.
-- 📊 Considera agregar logging para monitorear el progreso.
-- 💾 Guarda los PDFs en una carpeta organizada.
+- 🕐 **Delays entre requests**: el scraper incluye pausas base + jitter aleatorio (`retry.politeDelay`) para no saturar el servidor.
+- 🔄 **Retry inteligente**: errores 429, 502, 503, 504 y fallos de red (`ECONNRESET`, `ETIMEDOUT`, etc.) se reintentan con backoff exponencial en `src/retry.ts`.
+- 📝 **Persistencia estructurada**: los metadatos se guardan en `data/metadata.csv` y `data/progress.json` tras cada paso importante.
+- 🧪 **Ejecuciones de prueba**: usa `SCRAPER_MAX_PAGES=1` o `SCRAPER_MAX_DOWNLOADS=5` para validar el flujo antes de una descarga masiva.
+- 📊 **Logging**: cada ejecución genera un archivo en `logs/scraper_<site>_<timestamp>.log` con nivel `INFO` por defecto.
+- 💾 **PDFs organizados**: los archivos descargados se almacenan en `pdfs/` con nombres basados en expediente/resolución.
 
 ## 📄 Licencia
 
