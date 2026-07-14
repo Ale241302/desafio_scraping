@@ -310,48 +310,90 @@ https://jurisprudencia.pj.gob.pe/jurisprudenciaweb/faces/page/inicio.xhtml
 
 ### Tecnología
 
-Es una aplicación **JSF** con componentes **RichFaces 4.2.2.Final** (no PrimeFaces). Diferencias clave:
+Es una aplicación **JSF** con componentes **RichFaces 4.2.2.Final** (no PrimeFaces). Diferencias clave respecto a OEFA:
 
 - El formulario de búsqueda general está en `inicio.xhtml`.
 - Al hacer clic en **Buscar**, el servidor responde con un redirect `302` a `resultado.xhtml`.
 - El redirect usa `http://`, por lo que el scraper debe capturar la `Location` y forzar `https://` para mantener la sesión.
 - Los resultados se renderizan en `formBuscador:panel`.
 - La paginación usa `rich:dataScroller` (`formBuscador:data1`) y se controla vía AJAX enviando `formBuscador:data1:page=N`.
-- Cada resultado tiene un enlace **Ver ficha** que abre un popup (`formBuscador:popupResolucion`) vía AJAX. El scraper replica esa petición incluyendo el `source` también como parámetro de formulario, lo que permite recuperar el HTML completo del popup.
+- Cada resultado tiene un enlace **Ver ficha** que abre un popup (`formBuscador:popupResolucion`) vía AJAX.
 - Los PDFs se descargan directamente desde `/jurisprudenciaweb/ServletDescarga?uuid=<UUID>`.
 - Se valida que el archivo descargado comience con `%PDF` y contenga `%%EOF`.
 
 ### Formulario de búsqueda
 
-| Campo | ID | Notas |
-|-------|-----|-------|
-| Texto libre | `formBuscador:txtBusqueda` | Busca en el contenido de las resoluciones. |
-| Botón general | `formBuscador:j_idt31` | Inicia la búsqueda desde `inicio.xhtml`. |
-| Panel de resultados | `formBuscador:panel` | Se actualiza en `resultado.xhtml`. |
-| Paginador | `formBuscador:data1` | DataScroller de RichFaces. |
+El formulario tiene ID `formBuscador` y permite filtrar por:
+
+| Campo | ID del input | Tipo | Soportado por el scraper |
+|-------|--------------|------|--------------------------|
+| Texto libre | `formBuscador:txtBusqueda` | Texto | ✅ Sí (obligatorio) |
+| Nivel | `formBuscador:buCorte` | Select | ❌ No |
+| Distrito Judicial | `formBuscador:buDistrito` | Select | ❌ No |
+| Especialidad | `formBuscador:buEspecialidad` | Select | ❌ No |
+| Pretensión / Delito | `formBuscador:buPretension` | Autocomplete | ❌ No |
+| Palabras Clave | `formBuscador:buPalabraClave` | Autocomplete | ❌ No |
+| Nº Expediente | `formBuscador:buNroExpediente` | Texto | ❌ No |
+| Órgano Jurisdiccional | `formBuscador:buSala` | Select | ❌ No |
+| Tipo Recurso | `formBuscador:buTipoRecurso` | Select | ❌ No |
+| Tipo Resolución | `formBuscador:buTipoResolucion` | Select | ❌ No |
+| Año de la Resolución | `formBuscador:buAnio` | Select | ❌ No |
+| Incluir auto calificatorios | `formBuscador:varAutos` | Checkbox | ❌ No |
+
+Actualmente el scraper usa únicamente el **texto libre** como filtro de búsqueda. Los demás filtros están disponibles en la interfaz web pero aún no están implementados en el scraper.
+
+### Tabla de resultados
+
+Los resultados se renderizan dentro de `formBuscador:panel`. Cada fila es un panel `formBuscador:repeat:N:j_idt455` con la siguiente información:
+
+1. **Recurso** — tipo de recurso (Casación, Apelación, etc.).
+2. **Número de resolución/expediente** — identificador principal.
+3. **Pretensión / Delito** — materia del proceso.
+4. **Tipo Resolución** — Ejecutoria Suprema, Sentencia de Vista, etc.
+5. **Fecha Resolución** — fecha de emisión.
+6. **Sala Suprema / Órgano Jurisdiccional** — sala u órgano que emitió la resolución.
+7. **Norma de Derecho Interno** — normas aplicadas (si existen).
+8. **Sumilla** — resumen de la resolución.
+9. **Palabras Clave** — etiquetas de indexación.
+10. **Ver ficha** — enlace que abre el popup detallado.
+11. **Ver resolución** — enlace directo al PDF (`ServletDescarga?uuid=...`).
+
+### Paginación
+
+El paginador tiene ID `formBuscador:data1` y muestra botones numerados, además de controles *next* y *last*. En RichFaces, la paginación AJAX envía:
+
+- `javax.faces.source=formBuscador:data1`
+- `javax.faces.partial.execute=formBuscador:data1`
+- `javax.faces.partial.render=formBuscador:panel formBuscador:data1`
+- `formBuscador:data1:page=N`
+- `javax.faces.ViewState`
+
+El scraper itera página por página usando `fetchPageAjax(page)` hasta que no hay más resultados o se alcanza `SCRAPER_MAX_PAGES`.
 
 ### Ficha detallada
 
-Cada fila incluye un enlace **Ver ficha**:
+Cada fila incluye un enlace **Ver ficha** similar a este:
 
 ```html
-<a href="#" title="Ver" onclick="RichFaces.ajax('formBuscador:repeat:0:j_idt503', event, {
+<a href="#" title="Ver" onclick="RichFaces.ajax('formBuscador:repeat:0:j_idt491', event, {
   'parameters': {
-    'uuid':'39596387-9c0e-4565-acbd-09bd1b98842c',
-    'recurso':'Apelación',
+    'uuid':'7134325f-1e3d-43a7-90b4-aa2a4906a1ae',
+    'recurso':'Casación',
+    'nroexp':'027075-2025',
     ...
-  }
+  },
+  'incId':'1'
 })">...</a>
 ```
 
 El scraper:
 
-1. Extrae el `source` (`formBuscador:repeat:N:j_idt503`) y los parámetros del `onclick`.
+1. Extrae el `source` (`formBuscador:repeat:N:j_idt491`) y los parámetros del `onclick`.
 2. Envía una petición AJAX a `resultado.xhtml` con:
    - `javax.faces.source`, `javax.faces.partial.execute` y `javax.faces.partial.render`.
    - El mismo `source` como parámetro de formulario (clave para que RichFaces/Mojarra ejecute el listener correcto).
    - `javax.faces.ViewState` actual.
-3. Extrae del XML parcial el popup y parsea:
+3. Extrae del XML parcial el popup `formBuscador:popupResolucion` y parsea:
    - `Fallo/Sentido de la Resolución:` → `sentidoFallo`
    - `Jueces Supremos:` / `Magistrados del Tribunal:` → `magistradosTribunal`
    - `*** Ponente:` → `magistradoPonente`
@@ -366,7 +408,7 @@ Si el servidor devuelve el popup vacío, se reintenta una vez automáticamente.
 Cada resultado incluye un enlace directo:
 
 ```html
-<a href="/jurisprudenciaweb/ServletDescarga?uuid=39596387-9c0e-4565-acbd-09bd1b98842c">
+<a href="/jurisprudenciaweb/ServletDescarga?uuid=7134325f-1e3d-43a7-90b4-aa2a4906a1ae">
   <img src=".../btn-ver-resolucion.png" />
 </a>
 ```
@@ -376,11 +418,17 @@ El scraper extrae el `uuid` y descarga el PDF con un `GET` a ese servlet. Se val
 ### Ejecución
 
 ```bash
-# Solo metadatos (texto = "derecho ambiental")
+# Solo metadatos + ficha detallada
 npx cross-env SCRAPER_SITE=pj SCRAPER_TEXT="derecho ambiental" SCRAPER_METADATA_ONLY=true npx tsx src/index.ts
 
-# Metadatos + 5 PDFs
+# Metadatos + descargar todos los PDFs
+npx cross-env SCRAPER_SITE=pj SCRAPER_TEXT="derecho ambiental" npx tsx src/index.ts
+
+# Limitar a 5 PDFs de prueba
 npx cross-env SCRAPER_SITE=pj SCRAPER_TEXT="derecho ambiental" SCRAPER_MAX_DOWNLOADS=5 npx tsx src/index.ts
+
+# Limitar a 3 páginas de resultados (solo metadatos)
+npx cross-env SCRAPER_SITE=pj SCRAPER_TEXT="derecho ambiental" SCRAPER_METADATA_ONLY=true SCRAPER_MAX_PAGES=3 npx tsx src/index.ts
 ```
 
 ## 🧪 Pruebas realizadas
