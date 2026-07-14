@@ -47,6 +47,9 @@ export class PjScraper {
    * Realiza una búsqueda por texto y devuelve el HTML completo de resultado.xhtml.
    */
   async search(texto: string): Promise<string> {
+    if (!texto || !texto.trim()) {
+      throw new Error('El texto de búsqueda es obligatorio para el sitio del Poder Judicial.');
+    }
     this.textoBusqueda = texto;
     const postData = new URLSearchParams();
     postData.append(this.config.formId, this.config.formId);

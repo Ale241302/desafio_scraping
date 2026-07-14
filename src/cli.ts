@@ -31,18 +31,24 @@ export async function runInteractiveMenu(config: SiteConfig): Promise<CliOptions
 
   const filters: Record<string, string> = {};
 
+  // En PJ el texto de búsqueda es obligatorio; lo pedimos siempre.
+  if (site === 'pj') {
+    const texto = await input({
+      message: 'Texto a buscar en el contenido de las resoluciones (obligatorio):',
+      default: '',
+      validate: (value) => value?.trim() ? true : 'Debes ingresar un texto de búsqueda.',
+    });
+    filters.texto = texto.trim();
+  }
+
   const useFilters = await confirm({
-    message: '¿Deseas aplicar filtros de búsqueda?',
+    message: '¿Deseas aplicar filtros adicionales de búsqueda?',
     default: false,
   });
 
   if (useFilters) {
     if (site === 'pj') {
-      const texto = await input({
-        message: 'Texto a buscar en el contenido de las resoluciones:',
-        default: '',
-      });
-      if (texto.trim()) filters.texto = texto.trim();
+      // El texto ya se pidió arriba; aquí podrían agregarse filtros adicionales en el futuro.
     } else {
       const numeroExpediente = await input({
         message: 'Número de expediente (dejar vacío para todos):',
