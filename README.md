@@ -404,6 +404,15 @@ npx cross-env SCRAPER_SITE=pj SCRAPER_TEXT="derecho ambiental" SCRAPER_MAX_DOWNL
 - Los metadatos se guardan tanto en CSV como en JSON.
 - El sitio PJ requiere conexión desde Perú (VPN peruana). Sin ella, `init()` detecta el fallo de conexión y muestra un mensaje claro antes de continuar.
 
+## 💡 Tips y recomendaciones
+
+- 🕐 Implementa delays entre requests para evitar sobrecargar el servidor.
+- 🔄 Usa estrategias de retry inteligentes para los errores 429.
+- 📝 Guarda los datos extraídos en un formato estructurado (JSON, CSV, etc.).
+- 🧪 Prueba tu scraper con un subconjunto de documentos antes de ejecutarlo completo.
+- 📊 Considera agregar logging para monitorear el progreso.
+- 💾 Guarda los PDFs en una carpeta organizada.
+
 ## 📄 Licencia
 
 MIT
