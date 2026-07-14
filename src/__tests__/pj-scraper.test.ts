@@ -128,6 +128,14 @@ describe('PjScraper.parseResultsHtml', () => {
     const records = scraper.parseResultsHtml(SAMPLE_RESULT_HTML, 10);
     expect(records[0].nro).toBe('11');
   });
+
+  it('soporta variantes de labels (Sala Suprema, Pretensión/Delito)', () => {
+    const html = SAMPLE_RESULT_HTML.replace('Órgano Jurisdiccional:', 'Sala Suprema:').replace('Pretención / Delito:', 'Pretensión/Delito:');
+    const scraper = new PjScraper({} as any, {} as any, '.', '.');
+    const records = scraper.parseResultsHtml(html);
+    expect(records[0].organoJurisdiccional).toBe('SALA CIVIL - SEDE CENTRAL');
+    expect(records[0].pretensionDelito).toBe('INFRACCION CONTRA EL PATRIMONIO');
+  });
 });
 
 describe('PjScraper.parseFichaHtml', () => {

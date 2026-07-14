@@ -462,17 +462,22 @@ export class PjScraper {
       const recurso = headerSpans[0] ? $(headerSpans[0]).text().trim() : '';
       const expediente = headerSpans[1] ? $(headerSpans[1]).text().trim() : '';
 
-      const getLabel = (label: string): string => {
-        const div = $(panel).find('div.txtbold').filter((_, el) => $(el).text().trim() === label).first().parent() as any;
-        return div.find('div').not('.txtbold').first().text().trim();
+      const getLabel = (labels: string[]): string => {
+        const txtBoldEls = $(panel).find('div.txtbold');
+        for (const label of labels) {
+          const div = txtBoldEls.filter((_, el) => $(el).text().trim() === label).first().parent() as any;
+          const value = div.find('div').not('.txtbold').first().text().trim();
+          if (value) return value;
+        }
+        return '';
       };
 
-      const tipoResolucion = getLabel('Tipo Resolución:');
-      const fechaResolucion = getLabel('Fecha Resolución:');
-      const organoJurisdiccional = getLabel('Órgano Jurisdiccional:');
-      const pretensionDelito = getLabel('Pretención / Delito:');
-      const sumilla = getLabel('Sumilla:');
-      const palabrasClave = getLabel('Palabras Clave:');
+      const tipoResolucion = getLabel(['Tipo Resolución:']);
+      const fechaResolucion = getLabel(['Fecha Resolución:']);
+      const organoJurisdiccional = getLabel(['Órgano Jurisdiccional:', 'Sala Suprema:']);
+      const pretensionDelito = getLabel(['Pretención / Delito:', 'Pretensión/Delito:', 'Pretensión / Delito:']);
+      const sumilla = getLabel(['Sumilla:']);
+      const palabrasClave = getLabel(['Palabras Clave:']);
 
       const pdfLink = $(panel).find('a[href*="ServletDescarga?uuid="]').attr('href');
       const uuidMatch = pdfLink ? pdfLink.match(/uuid=([0-9a-f-]{36})/) : null;
