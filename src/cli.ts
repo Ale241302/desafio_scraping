@@ -31,25 +31,22 @@ export async function runInteractiveMenu(config: SiteConfig): Promise<CliOptions
 
   const filters: Record<string, string> = {};
 
-  // En PJ el texto de búsqueda es obligatorio; lo pedimos siempre.
   if (site === 'pj') {
+    // En PJ el único filtro disponible es el texto de búsqueda, y es obligatorio.
     const texto = await input({
       message: 'Texto a buscar en el contenido de las resoluciones (obligatorio):',
       default: '',
       validate: (value) => value?.trim() ? true : 'Debes ingresar un texto de búsqueda.',
     });
     filters.texto = texto.trim();
-  }
+  } else {
+    // OEFA permite filtros adicionales opcionales.
+    const useFilters = await confirm({
+      message: '¿Deseas aplicar filtros adicionales de búsqueda?',
+      default: false,
+    });
 
-  const useFilters = await confirm({
-    message: '¿Deseas aplicar filtros adicionales de búsqueda?',
-    default: false,
-  });
-
-  if (useFilters) {
-    if (site === 'pj') {
-      // El texto ya se pidió arriba; aquí podrían agregarse filtros adicionales en el futuro.
-    } else {
+    if (useFilters) {
       const numeroExpediente = await input({
         message: 'Número de expediente (dejar vacío para todos):',
         default: '',
